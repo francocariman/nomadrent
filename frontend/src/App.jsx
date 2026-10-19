@@ -4,6 +4,8 @@ import Footer from './components/Footer.jsx';
 import Home from './components/Home.jsx';
 import ProductDetail from './components/ProductDetail.jsx';
 import AdminPanel from './components/AdminPanel.jsx';
+import Login from './components/Login.jsx';
+import Register from './components/Register.jsx';
 
 export default function App() {
   return (
@@ -14,11 +16,10 @@ export default function App() {
         <Routes>
           <Route path="/" element={<Home />} />
           <Route path="/producto/:id" element={<ProductDetail />} />
+          <Route path="/login" element={<Login />} />
+          <Route path="/registro" element={<Register />} />
           <Route path="/administracion" element={<AdminPanel />} />
-          <Route
-            path="*"
-            element={<p className="py-20 text-center text-slate-500">Esta página no existe.</p>}
-          />
+          <Route path="*" element={<p className="py-20 text-center text-slate-500">Esta página no existe.</p>} />
         </Routes>
       </main>
       <Footer />

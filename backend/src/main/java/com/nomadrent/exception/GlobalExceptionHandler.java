@@ -3,6 +3,7 @@ package com.nomadrent.exception;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
@@ -13,21 +14,34 @@ import java.util.stream.Collectors;
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 
+    private static ResponseEntity<Map<String, String>> respuesta(HttpStatus status, String mensaje) {
+        return ResponseEntity.status(status).body(Map.of("mensaje", mensaje));
+    }
+
     @ExceptionHandler(NombreDuplicadoException.class)
     public ResponseEntity<Map<String, String>> duplicado(NombreDuplicadoException ex) {
-        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(Map.of("mensaje", ex.getMessage()));
+        return respuesta(HttpStatus.BAD_REQUEST, ex.getMessage());
     }
 
-    /** Red de seguridad ante condiciones de carrera sobre la restricción UNIQUE. */
+    @ExceptionHandler(ReglaNegocioException.class)
+    public ResponseEntity<Map<String, String>> regla(ReglaNegocioException ex) {
+        return respuesta(HttpStatus.BAD_REQUEST, ex.getMessage());
+    }
+
+    /** Red de seguridad ante condiciones de carrera sobre restricciones UNIQUE. */
     @ExceptionHandler(DataIntegrityViolationException.class)
     public ResponseEntity<Map<String, String>> integridad(DataIntegrityViolationException ex) {
-        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                .body(Map.of("mensaje", "Ya existe un producto con ese nombre."));
+        return respuesta(HttpStatus.BAD_REQUEST, "Ya existe un registro con esos datos.");
     }
 
-    @ExceptionHandler(ProductoNoEncontradoException.class)
-    public ResponseEntity<Map<String, String>> noEncontrado(ProductoNoEncontradoException ex) {
-        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("mensaje", ex.getMessage()));
+    @ExceptionHandler({ProductoNoEncontradoException.class, RecursoNoEncontradoException.class})
+    public ResponseEntity<Map<String, String>> noEncontrado(RuntimeException ex) {
+        return respuesta(HttpStatus.NOT_FOUND, ex.getMessage());
+    }
+
+    @ExceptionHandler(CredencialesInvalidasException.class)
+    public ResponseEntity<Map<String, String>> credenciales(CredencialesInvalidasException ex) {
+        return respuesta(HttpStatus.UNAUTHORIZED, ex.getMessage());
     }
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
@@ -35,6 +49,11 @@ public class GlobalExceptionHandler {
         String detalle = ex.getBindingResult().getFieldErrors().stream()
                 .map(e -> e.getDefaultMessage())
                 .collect(Collectors.joining(" · "));
-        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(Map.of("mensaje", detalle));
+        return respuesta(HttpStatus.BAD_REQUEST, detalle);
+    }
+
+    @ExceptionHandler(HttpMessageNotReadableException.class)
+    public ResponseEntity<Map<String, String>> cuerpoInvalido(HttpMessageNotReadableException ex) {
+        return respuesta(HttpStatus.BAD_REQUEST, "La solicitud tiene un formato inválido.");
     }
 }

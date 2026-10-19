@@ -26,9 +26,11 @@ public class ProductoController {
         return service.listarAleatorios();
     }
 
+    /** GET /api/productos?page=0&categorias=1,2 */
     @GetMapping
-    public PaginaResponse<ProductoResponse> listar(@RequestParam(defaultValue = "0") int page) {
-        return service.listarPaginado(page);
+    public PaginaResponse<ProductoResponse> listar(@RequestParam(defaultValue = "0") int page,
+                                                   @RequestParam(required = false) List<Long> categorias) {
+        return service.listarPaginado(page, categorias);
     }
 
     @GetMapping("/{id}")
@@ -39,6 +41,11 @@ public class ProductoController {
     @PostMapping
     public ResponseEntity<ProductoResponse> crear(@Valid @RequestBody ProductoRequest request) {
         return ResponseEntity.status(HttpStatus.CREATED).body(service.crear(request));
+    }
+
+    @PutMapping("/{id}")
+    public ProductoResponse actualizar(@PathVariable Long id, @Valid @RequestBody ProductoRequest request) {
+        return service.actualizar(id, request);
     }
 
     @DeleteMapping("/{id}")

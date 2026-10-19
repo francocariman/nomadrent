@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { getProducto } from '../api.js';
+import { Icono } from '../icons.jsx';
 
 function Galeria({ imagenes, nombre }) {
   const [abierta, setAbierta] = useState(false);
@@ -123,6 +124,26 @@ export default function ProductDetail() {
               </p>
             </aside>
           </div>
+
+          <section aria-label="Características" className="rounded-2xl border border-slate-200 bg-white p-5">
+            <h2 className="border-b border-brand-100 pb-3 text-lg font-semibold text-slate-900">
+              ¿Qué ofrece este lugar?
+            </h2>
+            {producto.caracteristicas?.length ? (
+              <ul className="mt-4 grid grid-cols-1 gap-x-6 gap-y-4 min-[420px]:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
+                {producto.caracteristicas.map((c) => (
+                  <li key={c.id} className="flex items-center gap-3 text-sm text-slate-700">
+                    <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-brand-50 text-brand-600">
+                      <Icono nombre={c.icono} />
+                    </span>
+                    <span>{c.nombre}</span>
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <p className="mt-4 text-sm text-slate-500">Este alojamiento aún no tiene características cargadas.</p>
+            )}
+          </section>
         </div>
       )}
     </div>
