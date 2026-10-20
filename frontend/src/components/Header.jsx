@@ -62,6 +62,14 @@ function UserMenu() {
             <p className="truncate text-sm font-semibold text-white">{user.nombre} {user.apellido}</p>
             <p className="truncate text-xs text-slate-400">{user.email}</p>
           </div>
+          <Link
+            to="/favoritos"
+            role="menuitem"
+            onClick={() => setAbierto(false)}
+            className="block px-4 py-2.5 text-sm text-slate-300 hover:bg-slate-800 hover:text-white"
+          >
+            Mis favoritos
+          </Link>
           {isAdmin && (
             <Link
               to="/administracion"

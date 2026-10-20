@@ -2,6 +2,11 @@ import { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { getProducto } from '../api.js';
 import { Icono } from '../icons.jsx';
+import FavoritoButton from './FavoritoButton.jsx';
+import { ResumenPuntuacion } from './Estrellas.jsx';
+import DisponibilidadReserva from './DisponibilidadReserva.jsx';
+import Politicas from './Politicas.jsx';
+import Resenas from './Resenas.jsx';
 
 function Galeria({ imagenes, nombre }) {
   const [abierta, setAbierta] = useState(false);
@@ -75,6 +80,10 @@ export default function ProductDetail() {
   const [producto, setProducto] = useState(null);
   const [error, setError] = useState('');
   const [cargando, setCargando] = useState(true);
+  const [version, setVersion] = useState(0); // se incrementa al reservar para reevaluar si puede reseñar
+
+  // Actualiza media y total de reseñas sin mostrar "Cargando…"
+  const recargarProducto = () => getProducto(id).then(setProducto).catch(() => {});
 
   useEffect(() => {
     setCargando(true);
@@ -92,7 +101,10 @@ export default function ProductDetail() {
           <h1 className="truncate text-xl font-bold text-slate-900 sm:text-2xl">
             {producto ? producto.nombre : 'Detalle del alojamiento'}
           </h1>
+          {producto && <ResumenPuntuacion media={producto.puntuacionMedia} total={producto.totalResenas} />}
         </div>
+        <div className="flex shrink-0 items-center gap-2">
+          {producto && <FavoritoButton productoId={producto.id} className="!bg-white" />}
         <button
           type="button"
           onClick={() => navigate(-1)}
@@ -104,6 +116,7 @@ export default function ProductDetail() {
           </svg>
           Volver
         </button>
+        </div>
       </div>
 
       {cargando && <p className="py-12 text-center text-slate-500">Cargando…</p>}
@@ -144,6 +157,12 @@ export default function ProductDetail() {
               <p className="mt-4 text-sm text-slate-500">Este alojamiento aún no tiene características cargadas.</p>
             )}
           </section>
+
+          <DisponibilidadReserva producto={producto} onReservado={() => setVersion((v) => v + 1)} />
+
+          <Politicas politicas={producto.politicas} />
+
+          <Resenas productoId={producto.id} refrescar={version} onCambio={recargarProducto} />
         </div>
       )}
     </div>

@@ -2,38 +2,8 @@ import { useEffect, useState } from 'react';
 import { getRandomProductos, getProductos, getCategorias } from '../api.js';
 import ProductCard from './ProductCard.jsx';
 import Pagination from './Pagination.jsx';
-
-function Buscador() {
-  return (
-    <section aria-label="Buscador" className="rounded-2xl border border-slate-200 bg-white p-4 sm:p-6">
-      <h2 className="mb-4 text-xl font-bold text-slate-900">¿Dónde quieres quedarte?</h2>
-      <form onSubmit={(e) => e.preventDefault()} className="grid gap-3 md:grid-cols-[2fr_1fr_1fr_auto]">
-        <input
-          type="text"
-          placeholder="Ciudad o alojamiento"
-          aria-label="Ciudad o alojamiento"
-          className="rounded-lg border border-slate-300 px-3 py-2.5 text-sm focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-100"
-        />
-        <input
-          type="date"
-          aria-label="Desde"
-          className="rounded-lg border border-slate-300 px-3 py-2.5 text-sm focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-100"
-        />
-        <input
-          type="date"
-          aria-label="Hasta"
-          className="rounded-lg border border-slate-300 px-3 py-2.5 text-sm focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-100"
-        />
-        <button
-          type="submit"
-          className="rounded-lg bg-brand-600 px-6 py-2.5 text-sm font-medium text-white hover:bg-brand-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-offset-2"
-        >
-          Buscar
-        </button>
-      </form>
-    </section>
-  );
-}
+import BuscadorAvanzado from './BuscadorAvanzado.jsx';
+import { formatCorto } from '../dates.js';
 
 /** Sección de categorías: selección múltiple que filtra el catálogo. */
 function Categorias({ categorias, seleccion, onToggle, onLimpiar, cargando, error }) {
@@ -126,37 +96,45 @@ function Recomendaciones() {
   );
 }
 
+function resumenBusqueda({ destino, desde, hasta }) {
+  const partes = [];
+  if (destino) partes.push(`en “${destino}”`);
+  if (desde && hasta) partes.push(`del ${formatCorto(desde)} al ${formatCorto(hasta)}`);
+  return partes.length ? ` ${partes.join(' ')}` : ' con tu filtro';
+}
+
 /** Se remonta (key) cada vez que cambia el filtro, así vuelve a la página 1. */
-function Catalogo({ seleccion, totalCatalogo }) {
+function Catalogo({ seleccion, busqueda, totalCatalogo }) {
   const [data, setData] = useState({ content: [], page: 0, totalPages: 0, totalElements: 0 });
   const [page, setPage] = useState(0);
   const [cargando, setCargando] = useState(true);
   const [error, setError] = useState('');
-  const filtrado = seleccion.length > 0;
+  const buscando = Boolean(busqueda.destino || (busqueda.desde && busqueda.hasta));
+  const filtrado = seleccion.length > 0 || buscando;
 
   useEffect(() => {
     setCargando(true);
-    getProductos(page, seleccion)
+    getProductos(page, seleccion, busqueda)
       .then((d) => { setData(d); setError(''); })
       .catch((e) => setError(e.message))
       .finally(() => setCargando(false));
-  }, [page, seleccion]);
+  }, [page, seleccion, busqueda]);
 
   return (
     <section aria-label="Catálogo completo">
       <div className="mb-3 flex flex-wrap items-baseline justify-between gap-2">
-        <h2 className="text-xl font-bold text-slate-900">Todos los alojamientos</h2>
+        <h2 className="text-xl font-bold text-slate-900">{buscando ? 'Resultados de tu búsqueda' : 'Todos los alojamientos'}</h2>
         {!cargando && !error && (
           <p className="text-sm text-slate-500" aria-live="polite">
             {filtrado
-              ? `${data.totalElements} de ${totalCatalogo} alojamientos coinciden con tu filtro`
+              ? `${data.totalElements} de ${totalCatalogo} alojamientos coinciden${resumenBusqueda(busqueda)}`
               : `${data.totalElements} alojamientos`}
           </p>
         )}
       </div>
       <Estado cargando={cargando} error={error}
         vacio={!cargando && !error && data.content.length === 0}
-        mensajeVacio={filtrado ? 'Ningún alojamiento coincide con las categorías elegidas.' : 'Aún no hay alojamientos publicados.'} />
+        mensajeVacio={filtrado ? 'Ningún alojamiento coincide con los filtros elegidos. Prueba con otro destino, fechas o categorías.' : 'Aún no hay alojamientos publicados.'} />
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
         {data.content.map((p) => (
           <ProductCard key={p.id} producto={p} />
@@ -176,6 +154,8 @@ export default function Home() {
   const [cargandoCat, setCargandoCat] = useState(true);
   const [errorCat, setErrorCat] = useState('');
   const [seleccion, setSeleccion] = useState([]);
+  const [busqueda, setBusqueda] = useState({ destino: '', desde: '', hasta: '' });
+  const busquedaActiva = Boolean(busqueda.destino || (busqueda.desde && busqueda.hasta));
 
   useEffect(() => {
     getCategorias()
@@ -190,7 +170,11 @@ export default function Home() {
 
   return (
     <div className="space-y-10">
-      <Buscador />
+      <BuscadorAvanzado
+        activo={busquedaActiva}
+        onBuscar={setBusqueda}
+        onLimpiar={() => setBusqueda({ destino: '', desde: '', hasta: '' })}
+      />
       <Categorias
         categorias={categorias}
         seleccion={seleccion}
@@ -200,7 +184,13 @@ export default function Home() {
         error={errorCat}
       />
       <Recomendaciones />
-      <Catalogo key={seleccion.join(',')} seleccion={seleccion} totalCatalogo={totalCatalogo} />
+      {/* Se remonta al cambiar filtros o búsqueda: vuelve a la página 1 sin tocar las demás secciones */}
+      <Catalogo
+        key={`${seleccion.join(',')}|${busqueda.destino}|${busqueda.desde}|${busqueda.hasta}`}
+        seleccion={seleccion}
+        busqueda={busqueda}
+        totalCatalogo={totalCatalogo}
+      />
     </div>
   );
 }

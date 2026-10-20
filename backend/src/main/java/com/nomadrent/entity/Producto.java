@@ -43,6 +43,9 @@ public class Producto {
             inverseJoinColumns = @JoinColumn(name = "caracteristica_id"))
     private Set<Caracteristica> caracteristicas = new LinkedHashSet<>();
 
+    @Embedded
+    private Politica politicas = new Politica();
+
     public Producto() {}
 
     public Long getId() { return id; }
@@ -59,6 +62,9 @@ public class Producto {
     public void setPrecio(Double precio) { this.precio = precio; }
     public List<String> getImagenes() { return imagenes; }
     public void setImagenes(List<String> imagenes) { this.imagenes = imagenes; }
+    /** Hibernate deja el embebido en null si todas sus columnas son null: se normaliza aquí. */
+    public Politica getPoliticas() { return politicas != null ? politicas : new Politica(); }
+    public void setPoliticas(Politica politicas) { this.politicas = politicas; }
     public Set<Caracteristica> getCaracteristicas() { return caracteristicas; }
     public void setCaracteristicas(Set<Caracteristica> caracteristicas) { this.caracteristicas = caracteristicas; }
 }

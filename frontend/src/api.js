@@ -43,11 +43,17 @@ export const register = (data) => request('/auth/register', { method: 'POST', bo
 
 // ---- Productos
 export const getRandomProductos = () => request('/productos/random');
-export const getProductos = (page = 0, categoriaIds = []) => {
+export const getProductos = (page = 0, categoriaIds = [], { destino, desde, hasta } = {}) => {
   const params = new URLSearchParams({ page });
   if (categoriaIds.length) params.set('categorias', categoriaIds.join(','));
+  if (destino?.trim()) params.set('destino', destino.trim());
+  if (desde && hasta) {
+    params.set('desde', desde);
+    params.set('hasta', hasta);
+  }
   return request(`/productos?${params}`);
 };
+export const getSugerencias = (q) => request(`/productos/sugerencias?q=${encodeURIComponent(q)}`);
 export const getProducto = (id) => request(`/productos/${id}`);
 export const createProducto = (data) => request('/productos', { method: 'POST', body: data });
 export const updateProducto = (id, data) => request(`/productos/${id}`, { method: 'PUT', body: data });
@@ -68,3 +74,18 @@ export const deleteCategoria = (id) => request(`/categorias/${id}`, { method: 'D
 // ---- Usuarios (solo ADMIN)
 export const getUsuarios = () => request('/usuarios');
 export const setRolUsuario = (id, rol) => request(`/usuarios/${id}/rol`, { method: 'PATCH', body: { rol } });
+
+// ---- Disponibilidad y reservas
+export const getDisponibilidad = (productoId) => request(`/productos/${productoId}/disponibilidad`);
+export const createReserva = (data) => request('/reservas', { method: 'POST', body: data });
+export const getMisReservas = () => request('/reservas/mias');
+
+// ---- Favoritos (usuario autenticado)
+export const getFavoritos = (usuarioId) => request(`/favoritos/usuario/${usuarioId}`);
+export const toggleFavorito = (productoId) => request('/favoritos', { method: 'POST', body: { productoId } });
+export const deleteFavorito = (favoritoId) => request(`/favoritos/${favoritoId}`, { method: 'DELETE' });
+
+// ---- Reseñas
+export const getResenas = (productoId) => request(`/productos/${productoId}/resenas`);
+export const getElegibilidadResena = (productoId) => request(`/productos/${productoId}/resenas/elegibilidad`);
+export const createResena = (productoId, data) => request(`/productos/${productoId}/resenas`, { method: 'POST', body: data });

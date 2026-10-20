@@ -30,6 +30,12 @@ export default function AddProductForm({ producto = null, onCancel, onSaved }) {
     ciudad: producto?.ciudad ?? '',
     precio: producto?.precio ?? '',
   });
+  const [politicas, setPoliticas] = useState({
+    normas: producto?.politicas?.normas ?? '',
+    saludSeguridad: producto?.politicas?.saludSeguridad ?? '',
+    cancelacion: producto?.politicas?.cancelacion ?? '',
+  });
+  const setPol = (campo) => (e) => setPoliticas((p) => ({ ...p, [campo]: e.target.value }));
   const [imagenes, setImagenes] = useState(producto?.imagenes?.length ? producto.imagenes : ['']);
   const [seleccionadas, setSeleccionadas] = useState(producto?.caracteristicas?.map((c) => c.id) ?? []);
   const [error, setError] = useState('');
@@ -67,6 +73,7 @@ export default function AddProductForm({ producto = null, onCancel, onSaved }) {
       precio: Number(form.precio),
       imagenes: urls,
       caracteristicaIds: seleccionadas,
+      politicas,
     };
 
     setEnviando(true);
@@ -141,6 +148,26 @@ export default function AddProductForm({ producto = null, onCancel, onSaved }) {
             })}
           </div>
         )}
+      </fieldset>
+
+      <fieldset className="space-y-3">
+        <legend className="mb-1 text-sm font-medium text-slate-700">
+          Políticas <span className="font-normal text-slate-500">· una regla por línea</span>
+        </legend>
+        <div className="grid gap-4 md:grid-cols-3">
+          <Campo label="Normas de la casa">
+            <textarea rows={5} maxLength={3000} value={politicas.normas} onChange={setPol('normas')} className={inputCls}
+              placeholder={'Check-in: 14:00\nNo se permiten fiestas'} />
+          </Campo>
+          <Campo label="Salud y seguridad">
+            <textarea rows={5} maxLength={3000} value={politicas.saludSeguridad} onChange={setPol('saludSeguridad')} className={inputCls}
+              placeholder={'Detector de humo\nBotiquín disponible'} />
+          </Campo>
+          <Campo label="Cancelación">
+            <textarea rows={5} maxLength={3000} value={politicas.cancelacion} onChange={setPol('cancelacion')} className={inputCls}
+              placeholder={'Cancelación gratuita hasta 48 h antes'} />
+          </Campo>
+        </div>
       </fieldset>
 
       <fieldset className="space-y-2">

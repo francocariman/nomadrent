@@ -13,9 +13,12 @@ public record ProductoResponse(
         String ciudad,
         Double precio,
         List<String> imagenes,
-        List<CaracteristicaResponse> caracteristicas
+        List<CaracteristicaResponse> caracteristicas,
+        PoliticaDto politicas,
+        double puntuacionMedia,
+        long totalResenas
 ) {
-    public static ProductoResponse from(Producto p) {
+    public static ProductoResponse from(Producto p, ResumenPuntuacion resumen) {
         return new ProductoResponse(
                 p.getId(), p.getNombre(), p.getDescripcion(),
                 p.getCategoria().getId(), p.getCategoria().getTitulo(),
@@ -23,6 +26,8 @@ public record ProductoResponse(
                 p.getCaracteristicas().stream()
                         .map(CaracteristicaResponse::from)
                         .sorted(Comparator.comparing(CaracteristicaResponse::nombre, String.CASE_INSENSITIVE_ORDER))
-                        .toList());
+                        .toList(),
+                PoliticaDto.from(p.getPoliticas()),
+                resumen.media(), resumen.total());
     }
 }

@@ -43,6 +43,10 @@ public class SecurityConfig {
                 .requestMatchers(antMatcher(HttpMethod.GET, "/api/productos/**")).permitAll()
                 .requestMatchers(antMatcher(HttpMethod.GET, "/api/caracteristicas/**")).permitAll()
                 .requestMatchers(antMatcher(HttpMethod.GET, "/api/categorias/**")).permitAll()
+                // Acciones de cualquier usuario autenticado (USER o ADMIN)
+                .requestMatchers(antMatcher(HttpMethod.POST, "/api/productos/*/resenas")).authenticated()
+                .requestMatchers(antMatcher("/api/favoritos/**")).authenticated()
+                .requestMatchers(antMatcher("/api/reservas/**")).authenticated()
                 // Todo lo demás de la API (crear/editar/eliminar, usuarios) es solo para administradores
                 .requestMatchers(antMatcher("/api/**")).hasRole("ADMIN")
                 .anyRequest().permitAll())
