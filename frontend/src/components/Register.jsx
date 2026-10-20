@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Link, Navigate, useNavigate } from 'react-router-dom';
+import { Link, Navigate, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext.jsx';
 import { validarCampo, validarFormulario } from '../validation.js';
 import FormField from './FormField.jsx';
@@ -10,6 +10,9 @@ const CAMPOS = ['nombre', 'apellido', 'email', 'password', 'confirmar'];
 export default function Register() {
   const { user, register } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
+  const destino = location.state?.from ?? '/';
+  const mensaje = location.state?.mensaje;
 
   const [valores, setValores] = useState({ nombre: '', apellido: '', email: '', password: '', confirmar: '' });
   const [errores, setErrores] = useState({});
@@ -17,7 +20,7 @@ export default function Register() {
   const [errorServidor, setErrorServidor] = useState('');
   const [enviando, setEnviando] = useState(false);
 
-  if (user) return <Navigate to="/" replace />;
+  if (user) return <Navigate to={destino} replace />;
 
   const onChange = (e) => {
     const { name, value } = e.target;
@@ -52,7 +55,7 @@ export default function Register() {
         email: valores.email.trim(),
         password: valores.password,
       });
-      navigate('/', { replace: true });
+      navigate(destino, { replace: true });
     } catch (err) {
       setErrorServidor(err.message); // ej: correo ya registrado
     } finally {
@@ -80,6 +83,7 @@ export default function Register() {
           <p className="mt-1 text-sm text-slate-500">Regístrate para acceder a funcionalidades extras.</p>
         </div>
 
+        <Notice tipo="info">{mensaje}</Notice>
         <Notice>{errorServidor}</Notice>
 
         <div className="grid gap-4 sm:grid-cols-2">
@@ -112,7 +116,7 @@ export default function Register() {
 
         <p className="text-center text-sm text-slate-500">
           ¿Ya tienes cuenta?{' '}
-          <Link to="/login" className="font-medium text-brand-600 hover:text-brand-700">Iniciar sesión</Link>
+          <Link to="/login" state={location.state} className="font-medium text-brand-600 hover:text-brand-700">Iniciar sesión</Link>
         </p>
       </form>
     </div>

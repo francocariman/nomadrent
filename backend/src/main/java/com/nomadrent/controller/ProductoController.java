@@ -32,6 +32,19 @@ public class ProductoController {
         return service.sugerencias(q);
     }
 
+    /**
+     * Fechas libres más cercanas para un destino sin disponibilidad en el rango pedido.
+     * GET /api/productos/alternativas?destino=cordoba&desde=2026-11-01&hasta=2026-11-05[&categorias=1,2]
+     */
+    @GetMapping("/alternativas")
+    public List<AlternativaResponse> alternativas(
+            @RequestParam String destino,
+            @RequestParam(required = false) List<Long> categorias,
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate desde,
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate hasta) {
+        return service.alternativas(destino, categorias, desde, hasta);
+    }
+
     /** GET /api/productos?page=0&categorias=1,2&destino=cordoba&desde=2026-11-01&hasta=2026-11-05 */
     @GetMapping
     public PaginaResponse<ProductoResponse> listar(

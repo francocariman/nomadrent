@@ -7,6 +7,9 @@ import AdminPanel from './components/AdminPanel.jsx';
 import Login from './components/Login.jsx';
 import Register from './components/Register.jsx';
 import Favoritos from './components/Favoritos.jsx';
+import BookingView from './components/BookingView.jsx';
+import MisReservas from './components/MisReservas.jsx';
+import WhatsAppButton from './components/WhatsAppButton.jsx';
 
 export default function App() {
   return (
@@ -17,6 +20,8 @@ export default function App() {
         <Routes>
           <Route path="/" element={<Home />} />
           <Route path="/producto/:id" element={<ProductDetail />} />
+          <Route path="/producto/:id/reserva" element={<BookingView />} />
+          <Route path="/mis-reservas" element={<MisReservas />} />
           <Route path="/login" element={<Login />} />
           <Route path="/registro" element={<Register />} />
           <Route path="/favoritos" element={<Favoritos />} />
@@ -25,6 +30,7 @@ export default function App() {
         </Routes>
       </main>
       <Footer />
+      <WhatsAppButton />
     </div>
   );
 }

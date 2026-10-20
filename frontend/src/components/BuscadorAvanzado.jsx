@@ -11,7 +11,7 @@ const campoCls =
  * Buscador por destino (con sugerencias dinámicas) y rango de fechas (calendario doble).
  * Llama a onBuscar({ destino, desde, hasta }) y onLimpiar().
  */
-export default function BuscadorAvanzado({ onBuscar, onLimpiar, activo }) {
+export default function BuscadorAvanzado({ onBuscar, onLimpiar, activo, busqueda }) {
   const uid = useId();
   const listId = `${uid}-sugerencias`;
 
@@ -22,6 +22,15 @@ export default function BuscadorAvanzado({ onBuscar, onLimpiar, activo }) {
   const [indice, setIndice] = useState(-1);
   const [calAbierto, setCalAbierto] = useState(false);
   const [error, setError] = useState('');
+
+  // Si la búsqueda cambia desde afuera (p. ej. al elegir unas fechas sugeridas), se reflejan los campos
+  useEffect(() => {
+    if (!busqueda) return;
+    setDestino(busqueda.destino);
+    setFechas({ desde: busqueda.desde, hasta: busqueda.hasta });
+    setError('');
+    setAbiertoSug(false);
+  }, [busqueda?.destino, busqueda?.desde, busqueda?.hasta]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const refDestino = useRef(null);
   const refFechas = useRef(null);

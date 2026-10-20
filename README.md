@@ -1,63 +1,180 @@
-# NomadRent · Sprint 1 + 2 + 3
+# 🏡 NomadRent — Plataforma de Alquiler Temporal y Reservas
 
-## Backend (Java 17 + Spring Boot 3.3 + Spring Security + JWT)
-```bash
+> Plataforma web integral desarrollada para la gestión, búsqueda, visualización detallada y reserva de alojamientos temporales, equipada con panel de administración para el control del catálogo y sistema completo de autenticación de usuarios y reseñas.
+
+---
+
+## 🚀 Tecnologías Utilizadas
+
+### ☕ Backend
+
+* **Java:** Versión 17 o 21
+* **Spring Boot:** 3.x
+* **Librerías / Módulos:** 
+  * Spring Web (REST APIs)
+  * Spring Data JPA (Persistencia de datos)
+  * H2 Database (Base de datos en memoria para entorno de desarrollo)
+  * Lombok (Optimización de código repetitivo)
+
+
+### ⚛️ Frontend
+
+* **React:** Versión 18+ (Vite)
+* **React Router DOM:** Manejo de rutas y navegación
+* **Tailwind CSS:** Framework de estilos UX/UI
+* **Lucide React:** Iconografía optimizada
+
+---
+
+## 🛠️ Instalación y Configuración Local
+
+Seguí estos pasos para clonar y poner a correr el proyecto en tu máquina de forma limpia:
+
+### Prerrequisitos
+* Tener instalado **Node.js** (versión 18 o superior) y **npm**.
+* Tener instalado **Java JDK** (versión 17 o 21) y **Maven**.
+
+### Configurar base de datos:
+
+como el proyecto esta creado con H2 (en memoria), para correrlo con una base de datos persistente hay que realizar los siguientes pasos:
+
+Instalar MySQL > Crear una base de datos llamada "nomadrent" > modificar el archivo application.properities de la siguiente manera:
+
+Eliminar lo que el fragmento
+
+>>
+# H2 en memoria
+spring.datasource.url=jdbc:h2:mem:nomadrentdb;DB_CLOSE_DELAY=-1
+spring.datasource.driver-class-name=org.h2.Driver
+spring.datasource.username=sa
+spring.datasource.password=
+
+spring.jpa.hibernate.ddl-auto=update
+spring.jpa.show-sql=false
+spring.jpa.open-in-view=false
+
+# Consola H2: http://localhost:8080/h2-console
+spring.h2.console.enabled=true
+spring.h2.console.path=/h2-console
+>>
+
+y reemplazar por:
+
+>>
+# Conexión a tu base de datos MySQL local
+spring.datasource.url=jdbc:mysql://localhost:3306/nomadrent?useSSL=false&serverTimezone=UTC
+spring.datasource.username=UsuarioBD
+spring.datasource.password=PasswordBD
+
+# Configuración de Hibernate para crear y actualizar las tablas automáticamente
+spring.jpa.hibernate.ddl-auto=update
+spring.jpa.show-sql=true
+spring.jpa.database-platform=org.hibernate.dialect.MySQLDialect
+>>
+
+### 1. Clonar el repositorio
+
+
+git clone [https://github.com/francocariman/nomadrent.git](https://github.com/francocariman/nomadrent.git)
+cd nomadrent
+
+2. Configurar y levantar el Backend (Spring Boot):
+
+Entrá a la carpeta del backend, compilá y ejecutá la aplicación:
+
 cd backend
-mvn spring-boot:run        # http://localhost:8080
-```
-- Consola H2: http://localhost:8080/h2-console (JDBC URL `jdbc:h2:mem:nomadrentdb`, user `sa`, sin password)
-- Datos de ejemplo al iniciar (`DataLoader`): 5 categorías, 10 características, 12 productos (con políticas, reservas futuras que bloquean fechas y reseñas) y 5 usuarios:
+./mvnw spring-boot:run
 
-| Rol | Correo | Contraseña |
-|---|---|---|
-| ADMIN | admin@nomadrent.com | Admin1234 |
-| USER | user@nomadrent.com | User1234 |
-| USER | marta@ · julian@ · sofia@nomadrent.com | Demo1234 |
+(En Windows también podes usar mvnw.cmd spring-boot:run). El servidor correrá por defecto en http://localhost:8080.
 
-- Secreto JWT: variable de entorno `NOMADRENT_JWT_SECRET` (mínimo 32 caracteres). Hay un valor por defecto **solo para desarrollo**.
+3. Configurar y levantar el Frontend (React):
 
-## Frontend (React 18 + Vite + Tailwind 3)
-```bash
+Abrí otra terminal, parate en la carpeta raíz y entrá a la carpeta del frontend:
+
 cd frontend
-# Requiere tu logo en src/assets/logo.png (lo usan Header.jsx y Footer.jsx; no está incluido en este zip)
 npm install
-npm run dev                # http://localhost:5173 (proxy /api -> :8080)
-```
+npm run dev
 
-## Endpoints
-`Público` = sin token · `ADMIN` = requiere `Authorization: Bearer <token>` de un administrador.
+La aplicación web se abrirá en http://localhost:5173 (o el puerto que indique Vite).
 
-| Método | Ruta | Acceso | Descripción |
-|---|---|---|---|
-| POST | /api/auth/register | Público | Registro (rol USER). Devuelve `{ token, usuario }` |
-| POST | /api/auth/login | Público | Login. 401 con mensaje claro si las credenciales son incorrectas |
-| GET | /api/productos/{id}/disponibilidad | Público | Rangos de noches ocupadas `[{desde, hasta}]` (hasta = día de salida) |
-| POST | /api/reservas | Autenticado | Body `{productoId, fechaInicio, fechaFin}`. 400 si hay solapamiento, fechas pasadas o > 90 noches |
-| GET | /api/reservas/mias | Autenticado | Reservas del usuario |
-| POST | /api/favoritos | Autenticado | Body `{productoId}`. Alterna: añade o quita. Devuelve `{favorito, favoritoId}` |
-| DELETE | /api/favoritos/{id} | Autenticado | Elimina un favorito propio (403 si es de otro usuario) |
-| GET | /api/favoritos/usuario/{usuarioId} | Autenticado | Favoritos del usuario; 403 si `usuarioId` no es el del token |
-| GET | /api/productos/{id}/resenas | Público | `{media, total, resenas[]}` (media calculada dinámicamente) |
-| GET | /api/productos/{id}/resenas/elegibilidad | Público* | `{puedeResenar, motivo}` según la sesión |
-| POST | /api/productos/{id}/resenas | Autenticado | Body `{puntuacion 1-5, comentario}`. Requiere reserva previa; una reseña por usuario y producto |
-| GET | /api/usuarios | ADMIN | Lista de usuarios |
-| PATCH | /api/usuarios/{id}/rol | ADMIN | Body `{ "rol": "ADMIN" \| "USER" }` |
-| GET | /api/productos/random | Público | Hasta 10 aleatorios sin repetir |
-| GET | /api/productos?page=0&categorias=1,2&destino=cordoba&desde=2026-11-01&hasta=2026-11-05 | Público | Paginado (10). Todos los filtros son opcionales y combinables; con fechas solo devuelve alojamientos sin reservas en ese rango |
-| GET | /api/productos/sugerencias?q=cor | Público | Autocompletado: ciudades y nombres (mín. 2 letras) |
-| GET | /api/productos/{id} | Público | Detalle (incluye categoría y características) |
-| POST / PUT / DELETE | /api/productos[/{id}] | ADMIN | Alta / edición / baja. 400 si el nombre está duplicado |
-| GET | /api/caracteristicas | Público | Lista |
-| POST / PUT / DELETE | /api/caracteristicas[/{id}] | ADMIN | CRUD (al borrar se desvincula de los productos) |
-| GET | /api/categorias | Público | Lista con `cantidadProductos` |
-| POST / PUT / DELETE | /api/categorias[/{id}] | ADMIN | CRUD (no se borra si tiene productos) |
+⚙️ Configurar variables de entorno:
+Crea un archivo .env en la raíz de la carpeta frontend/:
 
-## Notas de diseño
-- Contraseñas con BCrypt; el rol se lee de la BD en cada request, así que quitar/otorgar ADMIN aplica de inmediato.
-- Un admin no puede cambiarse su propio rol ni dejar al sistema sin administradores.
-- Los íconos se guardan como clave (`wifi`, `pileta`…); el catálogo visual está en `frontend/src/icons.jsx`.
-- Reservas: se ocupan las *noches* `[entrada, salida)`; el día de salida puede coincidir con la entrada de otra reserva. Verificación de solapamiento en el servicio; para alta concurrencia en producción conviene sumar bloqueo de fila o una restricción de exclusión en la BD.
-- Reseñas: puede reseñar quien tenga al menos una reserva del producto (incluye futuras, para poder probar el flujo). Para exigir estadía finalizada, filtrar por `fechaFin <= hoy` en `ResenaService`.
-- Políticas: tres textos incrustados en `producto` (una regla por línea → viñetas en el frontend), editables desde el formulario de producto.
-- Eliminar un producto borra sus favoritos, reseñas y reservas pasadas; se rechaza si tiene reservas vigentes o futuras.
-- #19 (correo de confirmación) es opcional según el documento y no está incluido.
+# .env
+VITE_API_URL=http://localhost:8080/api
+VITE_APP_NAME=NomadRent
+
+
+
+🔌 Endpoints Principales de la API
+
+Funcionalidad      Método       Endpoint                 Descripción         Requiere Auth
+
+   Auth	            POST      /api/auth/login                Inicio                ❌
+                                                           de sesión
+
+   Auth     	      POST      /api/auth/register          Registro de              ❌
+                                                           nuevo usuario	
+
+  Productos 	      GET	     /api/productos                 Obtener la             ❌
+                                                          lista completa
+                                                             paginada
+
+  Productos	        GET	    /api/productos/random         Obtener productos        ❌
+                                                         aleatorios (home)
+  
+  Productos         GET     /api/productos{id}            Obtener detalle          ❌
+                                                          de un producto
+
+  Administración    POST    /api/productos               Crear nuevo               ✅
+                                                      alojamiento (admin)
+
+  Administración    DELETE  /api/productos{id}       Eliminar alojamiento          ✅
+                                                           (admin)
+
+  Reservas          POST    /api/reservas                 Registrar nueva          ✅
+                                                        reservas con fecha
+
+  Reservas          GET    /api/reservas/usuario{id}    Historial de reservas      ✅
+                                                          del usuario
+
+
+
+
+🗄️ Diagrama de Base de Datos
+
+La estructura relacional del sistema conecta las entidades principales (Usuario, Producto, Reserva, Caracteristica, Categoria, Reseña) gestionadas mediante Spring Data JPA.
+
+🧪 Testing y QA
+
+Tipos de Pruebas: Pruebas unitarias de controladores, validaciones de formularios y control de rutas protegidas mediante roles (USER / ADMIN).
+
+Ejecución de Tests (Backend): 
+
+./mvnw test
+
+
+🌐 Deploy
+
+Backend: Desplegado y conectado en entorno cloud compatible (Railway / Render).
+
+Frontend: Desplegado mediante plataforma de integración continua en Vercel.
+
+
+
+📸 Capturas del Sistema / Vistas Principales
+
+Adjuntadas en carpeta raiz del proyecto
+
+nomadrent/imagen1.jpg
+nomadrent/imagen2.jpg
+nomadrent/imagen3.jpg
+nomadrent/imagen4.jpg
+nomadrent/imagen5.jpg
+
+📞 Soporte
+¿Encontraste un bug o tienes una sugerencia?
+
+🐛 Reportar bug
+💡 Solicitar feature
+📧 Email: francocariman98@gmail.com

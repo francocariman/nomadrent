@@ -21,12 +21,17 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
+import java.time.temporal.ChronoUnit;
 import java.util.*;
+import java.util.stream.Collectors;
 
 @Service
 public class ProductoService {
 
     public static final int PAGE_SIZE = 10;
+    /** Hasta cuántos días antes/después de lo pedido se buscan fechas alternativas. */
+    static final int ALTERNATIVAS_HORIZONTE_DIAS = 365;
+    static final int ALTERNATIVAS_MAX_RESULTADOS = 3;
 
     private final ProductoRepository repository;
     private final CategoriaRepository categorias;
@@ -118,6 +123,65 @@ public class ProductoService {
             });
         }
         return spec;
+    }
+
+
+    /**
+     * Cuando un destino existe pero no tiene las fechas pedidas libres, calcula para cada alojamiento
+     * del destino la ventana libre MÁS CERCANA (misma cantidad de noches, antes o después) y devuelve
+     * los mejores. Lista vacía si el destino no existe o no hay ninguna ventana dentro del horizonte.
+     */
+    @Transactional(readOnly = true)
+    public List<AlternativaResponse> alternativas(String destino, List<Long> categoriaIds, LocalDate desde, LocalDate hasta) {
+        if (destino == null || destino.isBlank()) {
+            throw new ReglaNegocioException("Indica un destino para sugerir fechas alternativas.");
+        }
+        if (desde == null || hasta == null || !hasta.isAfter(desde)) {
+            throw new ReglaNegocioException("Indica fechas de entrada y salida válidas.");
+        }
+        long noches = ChronoUnit.DAYS.between(desde, hasta);
+        if (noches > ReservaService.MAX_NOCHES) return List.of();
+
+        List<Producto> candidatos = repository.findAll(
+                especificacion(categoriaIds, destino, null, null),
+                PageRequest.of(0, 20, Sort.by("id").ascending())).getContent();
+        if (candidatos.isEmpty()) return List.of();
+
+        LocalDate hoy = LocalDate.now();
+        Map<Long, List<Reserva>> ocupadas = reservas
+                .findByProductoIdInAndFechaFinGreaterThan(candidatos.stream().map(Producto::getId).toList(), hoy)
+                .stream().collect(Collectors.groupingBy(r -> r.getProducto().getId()));
+
+        List<AlternativaResponse> out = new ArrayList<>();
+        for (Producto p : candidatos) {
+            List<Reserva> rs = ocupadas.getOrDefault(p.getId(), List.of());
+            for (int k = 1; k <= ALTERNATIVAS_HORIZONTE_DIAS; k++) {
+                LocalDate inicio = null;
+                LocalDate despues = desde.plusDays(k);
+                LocalDate antes = desde.minusDays(k);
+                if (!despues.isBefore(hoy) && ventanaLibre(rs, despues, noches)) inicio = despues;
+                else if (!antes.isBefore(hoy) && ventanaLibre(rs, antes, noches)) inicio = antes;
+                if (inicio != null) {
+                    String imagen = p.getImagenes().isEmpty() ? null : p.getImagenes().get(0);
+                    out.add(new AlternativaResponse(p.getId(), p.getNombre(), p.getCiudad(), imagen, p.getPrecio(),
+                            inicio, inicio.plusDays(noches), noches,
+                            ChronoUnit.DAYS.between(desde, inicio), noches * p.getPrecio()));
+                    break; // la primera ventana encontrada es la más cercana
+                }
+            }
+        }
+        out.sort(Comparator.comparingLong((AlternativaResponse a) -> Math.abs(a.desplazamientoDias()))
+                .thenComparing(AlternativaResponse::precio));
+        return out.stream().limit(ALTERNATIVAS_MAX_RESULTADOS).toList();
+    }
+
+    /** true si ninguna reserva se solapa con las noches [inicio, inicio + noches). */
+    private static boolean ventanaLibre(List<Reserva> reservas, LocalDate inicio, long noches) {
+        LocalDate fin = inicio.plusDays(noches);
+        for (Reserva r : reservas) {
+            if (r.getFechaInicio().isBefore(fin) && r.getFechaFin().isAfter(inicio)) return false;
+        }
+        return true;
     }
 
     @Transactional(readOnly = true)

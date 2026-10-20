@@ -53,6 +53,11 @@ export const getProductos = (page = 0, categoriaIds = [], { destino, desde, hast
   }
   return request(`/productos?${params}`);
 };
+export const getAlternativas = ({ destino, desde, hasta }, categoriaIds = []) => {
+  const params = new URLSearchParams({ destino, desde, hasta });
+  if (categoriaIds.length) params.set('categorias', categoriaIds.join(','));
+  return request(`/productos/alternativas?${params}`);
+};
 export const getSugerencias = (q) => request(`/productos/sugerencias?q=${encodeURIComponent(q)}`);
 export const getProducto = (id) => request(`/productos/${id}`);
 export const createProducto = (data) => request('/productos', { method: 'POST', body: data });
@@ -79,6 +84,7 @@ export const setRolUsuario = (id, rol) => request(`/usuarios/${id}/rol`, { metho
 export const getDisponibilidad = (productoId) => request(`/productos/${productoId}/disponibilidad`);
 export const createReserva = (data) => request('/reservas', { method: 'POST', body: data });
 export const getMisReservas = () => request('/reservas/mias');
+export const getReservasUsuario = (usuarioId) => request(`/reservas/usuario/${usuarioId}`);
 
 // ---- Favoritos (usuario autenticado)
 export const getFavoritos = (usuarioId) => request(`/favoritos/usuario/${usuarioId}`);

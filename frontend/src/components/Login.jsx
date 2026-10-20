@@ -9,13 +9,14 @@ export default function Login() {
   const navigate = useNavigate();
   const location = useLocation();
   const destino = location.state?.from ?? '/';
+  const mensaje = location.state?.mensaje;
 
   const [valores, setValores] = useState({ email: '', password: '' });
   const [errores, setErrores] = useState({});
   const [errorServidor, setErrorServidor] = useState('');
   const [enviando, setEnviando] = useState(false);
 
-  if (user) return <Navigate to="/" replace />;
+  if (user) return <Navigate to={destino} replace />;
 
   const onChange = (e) => {
     setValores((v) => ({ ...v, [e.target.name]: e.target.value }));
@@ -50,6 +51,7 @@ export default function Login() {
           <p className="mt-1 text-sm text-slate-500">Accede para ver tu información y reservar más fácil.</p>
         </div>
 
+        <Notice tipo="info">{mensaje}</Notice>
         <Notice>{errorServidor}</Notice>
 
         <FormField label="Correo electrónico" name="email" type="email" autoComplete="email"
@@ -67,7 +69,7 @@ export default function Login() {
 
         <p className="text-center text-sm text-slate-500">
           ¿Aún no tienes cuenta?{' '}
-          <Link to="/registro" className="font-medium text-brand-600 hover:text-brand-700">Crear cuenta</Link>
+          <Link to="/registro" state={location.state} className="font-medium text-brand-600 hover:text-brand-700">Crear cuenta</Link>
         </p>
       </form>
     </div>

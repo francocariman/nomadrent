@@ -33,6 +33,12 @@ public class ReservaController {
         return ResponseEntity.status(HttpStatus.CREATED).body(service.crear(auth.getName(), request));
     }
 
+    /** Historial del usuario del token; responde 403 si `usuarioId` es de otra persona. */
+    @GetMapping("/reservas/usuario/{usuarioId}")
+    public List<ReservaResponse> porUsuario(@PathVariable Long usuarioId, Authentication auth) {
+        return service.listarPorUsuario(usuarioId, auth.getName());
+    }
+
     @GetMapping("/reservas/mias")
     public List<ReservaResponse> mias(Authentication auth) {
         return service.listarMias(auth.getName());

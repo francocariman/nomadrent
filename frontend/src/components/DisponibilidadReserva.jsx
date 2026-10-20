@@ -1,54 +1,45 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
-import { Link, useLocation } from 'react-router-dom';
-import { createReserva, getDisponibilidad } from '../api.js';
+import { useEffect, useMemo, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { getDisponibilidad } from '../api.js';
 import { diffDays, formatLargo, nochesOcupadas } from '../dates.js';
 import { useAuth } from '../context/AuthContext.jsx';
 import DateRangePicker from './DateRangePicker.jsx';
 import Notice from './Notice.jsx';
 
-export default function DisponibilidadReserva({ producto, onReservado }) {
+export const MENSAJE_LOGIN_RESERVA = 'Debes iniciar sesión o registrarte para continuar con tu reserva.';
+
+/**
+ * Calendario de disponibilidad del detalle. El botón "Reservar":
+ *  - sin sesión  → redirige a /login con un mensaje claro (y vuelve a la reserva tras ingresar)
+ *  - con sesión  → redirige a /producto/:id/reserva (con las fechas elegidas, si las hay)
+ */
+export default function DisponibilidadReserva({ producto }) {
   const { user } = useAuth();
-  const location = useLocation();
+  const navigate = useNavigate();
   const [rangos, setRangos] = useState([]);
   const [fechas, setFechas] = useState({ desde: '', hasta: '' });
   const [cargando, setCargando] = useState(true);
   const [error, setError] = useState('');
-  const [exito, setExito] = useState('');
-  const [enviando, setEnviando] = useState(false);
 
-  const cargar = useCallback(async () => {
-    try {
-      setRangos(await getDisponibilidad(producto.id));
-      setError('');
-    } catch (e) {
-      setError(e.message);
-    } finally {
-      setCargando(false);
-    }
+  useEffect(() => {
+    getDisponibilidad(producto.id)
+      .then((r) => { setRangos(r); setError(''); })
+      .catch((e) => setError(e.message))
+      .finally(() => setCargando(false));
   }, [producto.id]);
-
-  useEffect(() => { cargar(); }, [cargar]);
 
   const bloqueadas = useMemo(() => nochesOcupadas(rangos), [rangos]);
   const completo = fechas.desde && fechas.hasta;
   const noches = completo ? diffDays(fechas.desde, fechas.hasta) : 0;
 
-  async function reservar() {
-    setError('');
-    setExito('');
-    setEnviando(true);
-    try {
-      await createReserva({ productoId: producto.id, fechaInicio: fechas.desde, fechaFin: fechas.hasta });
-      setExito(`¡Reserva confirmada! Del ${formatLargo(fechas.desde)} al ${formatLargo(fechas.hasta)}.`);
-      setFechas({ desde: '', hasta: '' });
-      await cargar();
-      onReservado?.();
-    } catch (e) {
-      setError(e.message);
-      await cargar(); // refresca bloqueos por si alguien reservó antes
-    } finally {
-      setEnviando(false);
+  function reservar() {
+    const base = `/producto/${producto.id}/reserva`;
+    const destino = completo ? `${base}?desde=${fechas.desde}&hasta=${fechas.hasta}` : base;
+    if (!user) {
+      navigate('/login', { state: { from: destino, mensaje: MENSAJE_LOGIN_RESERVA } });
+      return;
     }
+    navigate(destino);
   }
 
   return (
@@ -57,11 +48,10 @@ export default function DisponibilidadReserva({ producto, onReservado }) {
 
       <div className="mt-4">
         <Notice>{error}</Notice>
-        <Notice tipo="ok">{exito}</Notice>
         {cargando ? (
           <p className="py-6 text-center text-sm text-slate-500">Cargando disponibilidad…</p>
         ) : (
-          <DateRangePicker value={fechas} onChange={(f) => { setFechas(f); setExito(''); }} bloqueadas={bloqueadas} resaltarDisponibles />
+          <DateRangePicker value={fechas} onChange={setFechas} bloqueadas={bloqueadas} resaltarDisponibles />
         )}
       </div>
 
@@ -76,28 +66,16 @@ export default function DisponibilidadReserva({ producto, onReservado }) {
               </p>
             </>
           ) : (
-            <p>Elige tu fecha de entrada y de salida en el calendario.</p>
+            <p>Elige tu entrada y salida en el calendario, o continúa y elígelas en el siguiente paso.</p>
           )}
         </div>
-
-        {user ? (
-          <button
-            type="button"
-            onClick={reservar}
-            disabled={!completo || enviando}
-            className="rounded-lg bg-brand-600 px-6 py-2.5 text-sm font-medium text-white hover:bg-brand-700 disabled:cursor-not-allowed disabled:opacity-50"
-          >
-            {enviando ? 'Reservando…' : 'Reservar'}
-          </button>
-        ) : (
-          <Link
-            to="/login"
-            state={{ from: location.pathname }}
-            className="rounded-lg border border-brand-600 px-6 py-2.5 text-center text-sm font-medium text-brand-700 hover:bg-brand-50"
-          >
-            Inicia sesión para reservar
-          </Link>
-        )}
+        <button
+          type="button"
+          onClick={reservar}
+          className="rounded-lg bg-brand-600 px-8 py-2.5 text-sm font-medium text-white hover:bg-brand-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-offset-2"
+        >
+          Reservar
+        </button>
       </div>
     </section>
   );

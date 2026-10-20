@@ -3,6 +3,7 @@ package com.nomadrent.entity;
 import jakarta.persistence.*;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.LocalTime;
 
 /**
  * Reserva de un producto. Se ocupan las NOCHES [fechaInicio, fechaFin):
@@ -33,6 +34,17 @@ public class Reserva {
     @Column(nullable = false)
     private LocalDateTime creadaEn = LocalDateTime.now();
 
+    // Campos opcionales del formulario de reserva
+    @Column(name = "hora_llegada")
+    private LocalTime horaLlegada;
+
+    @Column(length = 500)
+    private String comentarios;
+
+    /** Correo de contacto para esta reserva; si es null se usa el de la cuenta. */
+    @Column(name = "email_contacto", length = 120)
+    private String emailContacto;
+
     public Reserva() {}
 
     public Long getId() { return id; }
@@ -44,6 +56,12 @@ public class Reserva {
     public void setFechaInicio(LocalDate fechaInicio) { this.fechaInicio = fechaInicio; }
     public LocalDate getFechaFin() { return fechaFin; }
     public void setFechaFin(LocalDate fechaFin) { this.fechaFin = fechaFin; }
+    public LocalTime getHoraLlegada() { return horaLlegada; }
+    public void setHoraLlegada(LocalTime horaLlegada) { this.horaLlegada = horaLlegada; }
+    public String getComentarios() { return comentarios; }
+    public void setComentarios(String comentarios) { this.comentarios = comentarios; }
+    public String getEmailContacto() { return emailContacto; }
+    public void setEmailContacto(String emailContacto) { this.emailContacto = emailContacto; }
     public LocalDateTime getCreadaEn() { return creadaEn; }
     public void setCreadaEn(LocalDateTime creadaEn) { this.creadaEn = creadaEn; }
 }

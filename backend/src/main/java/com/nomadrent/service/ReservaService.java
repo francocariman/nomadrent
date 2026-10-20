@@ -34,7 +34,7 @@ public class ReservaService {
         this.usuarios = usuarios;
     }
 
-    /** Rangos de noches ocupadas (de hoy en adelante) para pintar el calendario del detalle. */
+    /** Rangos de noches ocupadas (de hoy en adelante) para pintar el calendario. */
     @Transactional(readOnly = true)
     public List<RangoOcupado> disponibilidad(Long productoId) {
         if (!productos.existsById(productoId)) throw new ProductoNoEncontradoException(productoId);
@@ -43,10 +43,13 @@ public class ReservaService {
                 .toList();
     }
 
+    /**
+     * Registra una reserva. Valida fechas y verifica que el rango no se solape con otra reserva
+     * del mismo producto. El producto se bloquea durante la transacción para evitar carreras.
+     */
     @Transactional
     public ReservaResponse crear(String email, ReservaRequest req) {
-        Usuario u = usuarios.findByEmailIgnoreCase(email)
-                .orElseThrow(() -> new AccesoDenegadoException("Debes iniciar sesión."));
+        Usuario u = usuario(email);
         Producto p = productos.findById(req.productoId())
                 .orElseThrow(() -> new ProductoNoEncontradoException(req.productoId()));
 
@@ -59,6 +62,8 @@ public class ReservaService {
         if (ChronoUnit.DAYS.between(req.fechaInicio(), req.fechaFin()) > MAX_NOCHES) {
             throw new ReglaNegocioException("La estadía máxima es de " + MAX_NOCHES + " noches.");
         }
+
+        reservas.bloquearProducto(p.getId()); // serializa reservas concurrentes del mismo producto
         if (reservas.existsByProductoIdAndFechaInicioLessThanAndFechaFinGreaterThan(p.getId(), req.fechaFin(), req.fechaInicio())) {
             throw new ReglaNegocioException("Las fechas seleccionadas ya no están disponibles. Elige otras fechas.");
         }
@@ -68,13 +73,36 @@ public class ReservaService {
         r.setProducto(p);
         r.setFechaInicio(req.fechaInicio());
         r.setFechaFin(req.fechaFin());
+        r.setHoraLlegada(req.horaLlegada());
+        r.setComentarios(vacioANull(req.comentarios()));
+        r.setEmailContacto(vacioANull(req.emailContacto()));
         return ReservaResponse.from(reservas.save(r));
     }
 
+    /** Historial del usuario autenticado, de la reserva más reciente a la más antigua. */
     @Transactional(readOnly = true)
     public List<ReservaResponse> listarMias(String email) {
-        Usuario u = usuarios.findByEmailIgnoreCase(email)
+        return reservas.findByUsuarioIdOrderByFechaInicioDesc(usuario(email).getId()).stream()
+                .map(ReservaResponse::from).toList();
+    }
+
+    /** Igual que listarMias, pero validando que el id pedido sea el del usuario del token. */
+    @Transactional(readOnly = true)
+    public List<ReservaResponse> listarPorUsuario(Long usuarioId, String email) {
+        Usuario u = usuario(email);
+        if (!u.getId().equals(usuarioId)) {
+            throw new AccesoDenegadoException("Solo puedes ver tu propio historial de reservas.");
+        }
+        return reservas.findByUsuarioIdOrderByFechaInicioDesc(usuarioId).stream()
+                .map(ReservaResponse::from).toList();
+    }
+
+    private Usuario usuario(String email) {
+        return usuarios.findByEmailIgnoreCase(email)
                 .orElseThrow(() -> new AccesoDenegadoException("Debes iniciar sesión."));
-        return reservas.findByUsuarioIdOrderByFechaInicioDesc(u.getId()).stream().map(ReservaResponse::from).toList();
+    }
+
+    private static String vacioANull(String s) {
+        return s == null || s.isBlank() ? null : s.trim();
     }
 }

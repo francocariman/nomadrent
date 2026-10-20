@@ -3,6 +3,7 @@ import { getRandomProductos, getProductos, getCategorias } from '../api.js';
 import ProductCard from './ProductCard.jsx';
 import Pagination from './Pagination.jsx';
 import BuscadorAvanzado from './BuscadorAvanzado.jsx';
+import SinDisponibilidad from './SinDisponibilidad.jsx';
 import { formatCorto } from '../dates.js';
 
 /** Sección de categorías: selección múltiple que filtra el catálogo. */
@@ -104,13 +105,16 @@ function resumenBusqueda({ destino, desde, hasta }) {
 }
 
 /** Se remonta (key) cada vez que cambia el filtro, así vuelve a la página 1. */
-function Catalogo({ seleccion, busqueda, totalCatalogo }) {
+function Catalogo({ seleccion, busqueda, totalCatalogo, onElegirFechas }) {
   const [data, setData] = useState({ content: [], page: 0, totalPages: 0, totalElements: 0 });
   const [page, setPage] = useState(0);
   const [cargando, setCargando] = useState(true);
   const [error, setError] = useState('');
   const buscando = Boolean(busqueda.destino || (busqueda.desde && busqueda.hasta));
   const filtrado = seleccion.length > 0 || buscando;
+  const sinVacio = !cargando && !error && data.content.length === 0;
+  // Destino + fechas sin resultados: se sugieren las fechas libres más cercanas
+  const sugerirFechas = sinVacio && Boolean(busqueda.destino && busqueda.desde && busqueda.hasta);
 
   useEffect(() => {
     setCargando(true);
@@ -132,9 +136,13 @@ function Catalogo({ seleccion, busqueda, totalCatalogo }) {
           </p>
         )}
       </div>
-      <Estado cargando={cargando} error={error}
-        vacio={!cargando && !error && data.content.length === 0}
-        mensajeVacio={filtrado ? 'Ningún alojamiento coincide con los filtros elegidos. Prueba con otro destino, fechas o categorías.' : 'Aún no hay alojamientos publicados.'} />
+      {sugerirFechas ? (
+        <SinDisponibilidad busqueda={busqueda} seleccion={seleccion} onElegirFechas={onElegirFechas} />
+      ) : (
+        <Estado cargando={cargando} error={error}
+          vacio={sinVacio}
+          mensajeVacio={filtrado ? 'Ningún alojamiento coincide con los filtros elegidos. Prueba con otro destino, fechas o categorías.' : 'Aún no hay alojamientos publicados.'} />
+      )}
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
         {data.content.map((p) => (
           <ProductCard key={p.id} producto={p} />
@@ -168,29 +176,49 @@ export default function Home() {
     setSeleccion((s) => (s.includes(id) ? s.filter((x) => x !== id) : [...s, id]));
   const totalCatalogo = categorias.reduce((acc, c) => acc + c.cantidadProductos, 0);
 
+  const catalogo = (
+    // Se remonta al cambiar filtros o búsqueda: vuelve a la página 1
+    <Catalogo
+      key={`${seleccion.join(',')}|${busqueda.destino}|${busqueda.desde}|${busqueda.hasta}`}
+      seleccion={seleccion}
+      busqueda={busqueda}
+      totalCatalogo={totalCatalogo}
+      onElegirFechas={setBusqueda}
+    />
+  );
+  const categoriasEl = (
+    <Categorias
+      categorias={categorias}
+      seleccion={seleccion}
+      onToggle={toggle}
+      onLimpiar={() => setSeleccion([])}
+      cargando={cargandoCat}
+      error={errorCat}
+    />
+  );
+
   return (
     <div className="space-y-10">
       <BuscadorAvanzado
         activo={busquedaActiva}
+        busqueda={busqueda}
         onBuscar={setBusqueda}
         onLimpiar={() => setBusqueda({ destino: '', desde: '', hasta: '' })}
       />
-      <Categorias
-        categorias={categorias}
-        seleccion={seleccion}
-        onToggle={toggle}
-        onLimpiar={() => setSeleccion([])}
-        cargando={cargandoCat}
-        error={errorCat}
-      />
-      <Recomendaciones />
-      {/* Se remonta al cambiar filtros o búsqueda: vuelve a la página 1 sin tocar las demás secciones */}
-      <Catalogo
-        key={`${seleccion.join(',')}|${busqueda.destino}|${busqueda.desde}|${busqueda.hasta}`}
-        seleccion={seleccion}
-        busqueda={busqueda}
-        totalCatalogo={totalCatalogo}
-      />
+
+      {busquedaActiva ? (
+        <>
+          {/* Con búsqueda activa: sin recomendaciones, los resultados quedan justo bajo el buscador */}
+          {catalogo}
+          {categoriasEl}
+        </>
+      ) : (
+        <>
+          {categoriasEl}
+          <Recomendaciones />
+          {catalogo}
+        </>
+      )}
     </div>
   );
 }

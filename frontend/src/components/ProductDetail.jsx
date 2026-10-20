@@ -80,7 +80,6 @@ export default function ProductDetail() {
   const [producto, setProducto] = useState(null);
   const [error, setError] = useState('');
   const [cargando, setCargando] = useState(true);
-  const [version, setVersion] = useState(0); // se incrementa al reservar para reevaluar si puede reseñar
 
   // Actualiza media y total de reseñas sin mostrar "Cargando…"
   const recargarProducto = () => getProducto(id).then(setProducto).catch(() => {});
@@ -158,11 +157,11 @@ export default function ProductDetail() {
             )}
           </section>
 
-          <DisponibilidadReserva producto={producto} onReservado={() => setVersion((v) => v + 1)} />
+          <DisponibilidadReserva producto={producto} />
 
           <Politicas politicas={producto.politicas} />
 
-          <Resenas productoId={producto.id} refrescar={version} onCambio={recargarProducto} />
+          <Resenas productoId={producto.id} onCambio={recargarProducto} />
         </div>
       )}
     </div>
